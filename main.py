@@ -12,6 +12,7 @@ policy_flows = pd.DataFrame(
     index = range(2014, 2051)
     )
 
+# scenario 1 (Exponential Growth)
 a5_mac_flows = pd.DataFrame(
     columns = ('demand','bank','emissions','recovery','production'),
     index = range(2015,2051)
@@ -22,6 +23,7 @@ na5_mac_flows = pd.DataFrame(
     index = range(2015,2051)
     )
  
+# Linear Extrapolation
 a5_bau_flows = pd.DataFrame(
    columns = ('demand','bank','emissions','recovery','production'),
    index = range(2015,2051)
@@ -30,6 +32,28 @@ a5_bau_flows = pd.DataFrame(
 na5_bau_flows = pd.DataFrame(
    columns = ('demand','bank','emissions','recovery','production'),
    index = range(2015,2051)
+   )
+
+# scenario 2: linear extrapolation growth scenario 
+a5_mac_scen2_flows = pd.DataFrame(
+   columns = ('demand','bank','emissions','recovery','production'),
+   index = range(2015,2051)
+   )
+
+na5_mac_scen2_flows = pd.DataFrame(
+   columns = ('demand','bank','emissions','recovery','production'),
+   index = range(2015,2051)
+   )
+
+# scenario 3: growth using TEAP demand percentages; interpolation and extrapolation 
+a5_mac_scen3_flows = pd.DataFrame(
+   columns = ('demand','bank','emissions','recovery','production'),
+   index = range(2010,2051)
+   )
+
+na5_mac_scen3_flows = pd.DataFrame(
+   columns = ('demand','bank','emissions','recovery','production'),
+   index = range(2010,2051)
    )
 
 # Policy targets for A5 (Article 5) and NA5 (Non Article 5) countries (taken from the EU proposal):
@@ -50,6 +74,7 @@ def linearExtrapolation(x1,x2,x3,y1,y2):
     y3 = y1 + (y2-y1)*((x3-x1)/(x2-x1))
     return y3
 
+
 def exponentialGrowth(x_0,r,t_0,t_f):
     # x_0 is the initial value of whatever you are modeling
     # r is the growth rate 
@@ -68,8 +93,8 @@ def exponentialGrowth(x_0,r,t_0,t_f):
 
 na5_bau_flows.loc[2015,'demand'] = linearExtrapolation(2013,2014,2015,694.67,695.46)
 a5_bau_flows.loc[2015,'demand'] = linearExtrapolation(2013,2014,2015,466.01,537.83)
-na5_bau_flows.loc[2016,'demand'] = linearExtrapolation(2014,2015,2016,695.46,na5_2015_consumption_estimate)
-a5_bau_flows.loc[2016,'demand'] = linearExtrapolation(2014,2015,2016,537.83,a5_2015_consumption_estimate)
+na5_bau_flows.loc[2016,'demand'] = linearExtrapolation(2014,2015,2016,695.46,na5_bau_flows.loc[2015,'demand'])
+a5_bau_flows.loc[2016,'demand'] = linearExtrapolation(2014,2015,2016,537.83,a5_bau_flows.loc[2015,'demand'])
 
 
 na5_2015_emissions_estimate = 328 # Mt CO2-eq (TEAP 2009 updated supplement)
@@ -86,22 +111,38 @@ for t in range(2017,2051):
     a5_bau_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,a5_bau_flows.loc[t-2,'demand'],a5_bau_flows.loc[t-1,'demand'])
 
 
-# Model growth of each sector using exponential growth
+##### Scenario 1: Model growth of each sector using exponential growth
 
-# MAC
+### MAC
     #assume constant percentage break downs for total consumption into sectors
     #assume growth rates do not change (may relax later)
+    #assume 2015 percentage break down applies to 2015 and 2016 so that 2 points can be generated for 
+    #linear extrapolation 
 
-na5_2015_mac_consumption_estimate = (0.1776)*na5_2015_consumption_estimate # [Mt CO2-eq]
-a5_2015_mac_consumption_estimate = (0.144)*a5_2015_consumption_estimate # [Mt CO2-eq]
+na5_2016_mac_consumption_estimate = (0.1776)*na5_bau_flows.loc[2016,'demand'] # [Mt CO2-eq]
+a5_2016_mac_consumption_estimate = (0.144)*a5_bau_flows.loc[2016,'demand'] # [Mt CO2-eq]
+
+na5_2015_mac_consumption_estimate = (0.1776)*na5_bau_flows.loc[2015,'demand'] # [Mt CO2-eq]
+a5_2015_mac_consumption_estimate = (0.144)*a5_bau_flows.loc[2015,'demand'] # [Mt CO2-eq]
+
+a5_mac_scen2_flows.loc[2015,'demand'] = a5_2015_mac_consumption_estimate 
+na5_mac_scen2_flows.loc[2015,'demand'] = na5_2015_mac_consumption_estimate
+
+a5_mac_scen2_flows.loc[2016,'demand'] = a5_2016_mac_consumption_estimate
+na5_mac_scen2_flows.loc[2016,'demand'] = na5_2016_mac_consumption_estimate
+
 
     # BAU exponentially model consumption for MAC
 na5_mac_flows['demand'] = exponentialGrowth(na5_2015_mac_consumption_estimate,0.04,2015,2050) # [Mt CO2-eq]
 a5_mac_flows['demand'] = exponentialGrowth(a5_2015_mac_consumption_estimate,0.07,2015,2050) # [Mt CO2-eq]
 
+
 # MAC bank estimates BAU 
 na5_mac_flows.loc[2015,'bank'] = 3191 # Mt CO2-eq (TEAP 2009 updated supplement)
 a5_mac_flows.loc[2015,'bank'] = 1127 # Mt CO2-eq (TEAP 2009 updated supplement)
+
+na5_mac_scen2_flows.loc[2015,'bank'] = 3191
+a5_mac_scen2_flows.loc[2015,'bank'] = 1127
 
 mac_na5_ems_factor = 0.15175
 mac_a5_ems_factor = 0.15
@@ -121,6 +162,61 @@ a5_mac_flows.loc[2050,'emissions'] = (mac_a5_ems_factor)*(a5_mac_flows.loc[2050,
 
 
 # note: having the (1-ems_factor) attached to the bank calculation is the same as subtracting out emissions
+
+
+### SAC: Stationary Air Conditioning
+
+
+
+
+
+
+
+##### Scenario 2: Linear Extrapolation Consumption Growth
+
+# Extrapolate MAC HFC consumption using linear extrapolation
+
+for t in range(2017,2051):
+    na5_mac_scen2_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,na5_mac_scen2_flows.loc[t-2,'demand'],na5_mac_scen2_flows.loc[t-1,'demand'])
+    a5_mac_scen2_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,a5_mac_scen2_flows.loc[t-2,'demand'],a5_mac_scen2_flows.loc[t-1,'demand'])
+
+# Calculate emissions and banks based on material flows 
+
+for t in range(2015,2050):
+    # calculate emissions; Emissions Factor for NA5 MAC = 0.15175 (an average of factors for EU, USA, Japan, "Rest OECD")
+        #Emissions factor for A5 MAC = 15% (VELDERS 2015si)
+    na5_mac_scen2_flows.loc[t,'emissions'] = (mac_na5_ems_factor)*(na5_mac_scen2_flows.loc[t,'demand'] + na5_mac_scen2_flows.loc[t,'bank'])
+    a5_mac_scen2_flows.loc[t,'emissions'] = (mac_a5_ems_factor)*(a5_mac_scen2_flows.loc[t,'demand'] + a5_mac_scen2_flows.loc[t,'bank'])
+
+    # calculate next year's bank
+    na5_mac_scen2_flows.loc[t+1,'bank'] = (1-mac_na5_ems_factor)*(na5_mac_scen2_flows.loc[t,'demand'] + na5_mac_scen2_flows.loc[t,'bank'])
+    a5_mac_scen2_flows.loc[t+1,'bank'] = (1-mac_a5_ems_factor)*(a5_mac_scen2_flows.loc[t,'demand'] + a5_mac_scen2_flows.loc[t,'bank'])
+
+na5_mac_scen2_flows.loc[2050,'emissions'] = (mac_na5_ems_factor)*(na5_mac_scen2_flows.loc[2050,'demand'] + na5_mac_scen2_flows.loc[2050,'bank'])
+a5_mac_scen2_flows.loc[2050,'emissions'] = (mac_a5_ems_factor)*(a5_mac_scen2_flows.loc[2050,'demand'] + a5_mac_scen2_flows.loc[2050,'bank'])
+
+
+#####Scenario 3: applying TEAP percentages for sector growth and interpolating between those points
+
+# MAC consumption estimates for 2010, 2015, 2020, 2025, and 2030; based on TEAP demand percentages by sector
+na5_mac_consumption_estimates = [na5_historical_consumption[18]*0.269,na5_bau_flows.loc[2015,'demand']*0.1776,na5_bau_flows.loc[2020,'demand']*0.1478,na5_bau_flows.loc[2025,'demand']*0.1307,na5_bau_flows.loc[2030,'demand']*0.129]
+a5_mac_consumption_estimates = [a5_historical_consumption[18]*0.2077,a5_bau_flows.loc[2015,'demand']*0.144,a5_bau_flows.loc[2020,'demand']*0.128,a5_bau_flows.loc[2025,'demand']*0.109,a5_bau_flows.loc[2030,'demand']*0.1026]
+estimate_years = [2010,2015,2020,2025,2030]
+
+# interpolate consumption from 2010 to 2030 (between the estimates)
+na5_interp_mac = np.interp(list(range(2010,2031)),estimate_years,na5_mac_consumption_estimates)
+a5_interp_mac = np.interp(list(range(2010,2031)),estimate_years,a5_mac_consumption_estimates)
+
+# insert the interpolated data into the demand flows of "scenario 3"
+for t in range (2010,2031):
+    a5_mac_scen3_flows.loc[t,'demand'] = a5_interp_mac[t-2010]
+    na5_mac_scen3_flows.loc[t,'demand'] = na5_interp_mac[t-2010]
+
+# extrapolate the remaining demand (2031-2050)
+for t in range(2031,2051):
+    a5_mac_scen3_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,a5_mac_scen3_flows.loc[t-2,'demand'],a5_mac_scen3_flows.loc[t-1,'demand'])
+    na5_mac_scen3_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,na5_mac_scen3_flows.loc[t-2,'demand'],na5_mac_scen3_flows.loc[t-1,'demand'])
+
 
 
 
