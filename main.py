@@ -12,6 +12,16 @@ policy_flows = pd.DataFrame(
     index = range(2014, 2051)
     )
 
+na5_policy_mac_flows = pd.DataFrame(
+    columns = ('demand', 'bank', 'emissions', 'recycling', 'production'), 
+    index = range(2015, 2051)
+    )
+
+a5_policy_mac_flows = pd.DataFrame(
+    columns = ('demand', 'bank', 'emissions', 'recycling', 'production'), 
+    index = range(2015, 2051)
+    )
+
 # scenario 1 (Exponential Growth)
 a5_mac_flows = pd.DataFrame(
     columns = ('demand','bank','emissions','recovery','production'),
@@ -144,6 +154,9 @@ a5_mac_flows.loc[2015,'bank'] = 1127 # Mt CO2-eq (TEAP 2009 updated supplement)
 na5_mac_scen2_flows.loc[2015,'bank'] = 3191
 a5_mac_scen2_flows.loc[2015,'bank'] = 1127
 
+na5_policy_mac_flows.loc[2015,'bank'] = 3191
+a5_policy_mac_flows.loc[2015,'bank'] = 1127
+
 mac_na5_ems_factor = 0.15175
 mac_a5_ems_factor = 0.15
 
@@ -236,10 +249,42 @@ na5_policy_targets_mac = [na5_policy[1]*0.1776,na5_policy[6]*0.1478,na5_policy[1
 a5_policy_targets_mac = [a5_policy[1]*0.144,a5_policy[6]*0.128,a5_policy[11]*0.109,a5_policy[16]*0.1026]
 
 projected_years = [2015,2020,2025,2030]
+na5_mac_cons_prcntgs = [0.1776,0.1478,0.1307,0.129]
+a5_mac_cons_prcntgs = [0.144,0.128,0.109,0.1026]
 
-na5_policy_mac = np.interp(year,projected_years,na5_policy_targets_mac) # [MtCO2eq]
-a5_policy_mac = np.interp(year,projected_years,a5_policy_targets_mac) # [MtCO2eq]
+## Attempt 1: 
+# interpolate the mac consumption between 2015 and 2030
+na5_policy_mac = np.interp(list(range(2015,2031)),projected_years,na5_policy_targets_mac) # [MtCO2eq]
+a5_policy_mac = np.interp(list(range(2015,2031)),projected_years,a5_policy_targets_mac) # [MtCO2eq]
 global_policy_mac = na5_policy_mac + a5_policy_mac 
+
+#fill the data frames' demands between 2015 and 2030
+for t in range(2015,2031):
+    na5_policy_mac_flows.loc[t,'demand'] = na5_policy_mac[t-2015]
+    a5_policy_mac_flows.loc[t,'demand'] = a5_policy_mac[t-2015]
+
+
+# extrapolate the remaining mac consumption under the policy scenario
+### Note: Extrapolation as such generates negative consumption results after 2036
+for t in range(2031,2035):
+    na5_policy_mac_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,na5_policy_mac_flows.loc[t-2,'demand'],na5_policy_mac_flows.loc[t-1,'demand'])
+    a5_policy_mac_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,a5_policy_mac_flows.loc[t-2,'demand'],a5_policy_mac_flows.loc[t-1,'demand'])
+
+for t in range(2035,2051):
+    na5_policy_mac_flows.loc[t,'demand'] = na5_policy_mac_flows.loc[2034,'demand']
+    a5_policy_mac_flows.loc[t,'demand'] = a5_policy_mac_flows.loc[2034,'demand']
+
+
+## Attempt 2: 
+
+# interpolate and extrapolate percentages for 2015-2050 to apply to policy consumption figures 
+# interpolate 2015-2030
+#na5_interp_mac_prcntgs = np.interp(list(range(2015,2031)),projected_years,na5_mac_cons_prcntgs)
+#a5_interp_mac_prcntgs = np.intepr(list(range(2015,2031)),projected_years,a5_mac_cons_prcntgs)
+
+# extrapolate 2031-2034 (constant after 2034)
+#for t in range(2031,2035):
+
 
 
 #HFC-134a is phased out in new EU vehicles as of 2017, so demand decreases between 2015 and 2020 
@@ -250,12 +295,34 @@ global_policy_mac = na5_policy_mac + a5_policy_mac
 # Fill in policy target in data frame:
 policy_flows['demand'] = global_policy
 
+
+
 # Fill in initial size of bank [Mt CO2-eq] and recycling:
 policy_flows.loc[2014, 'bank'] = 5000
 
 # Calculate stocks and flows year-by-year:
 ems_fac = 0.30 # emissions factor with range 0.15-0.3
 rec_fac = 0.4 # recycling factor (as a fraction of emissions factor)
+
+
+
+
+# MVAC Banks, emissions, recycling, demand for policy scenario
+
+for t in range(2015,2050):
+    # Calculate emissions
+    na5_policy_mac_flows.loc[t,'emissions'] = (mac_na5_ems_factor)*(na5_policy_mac_flows.loc[t,'demand'] + na5_policy_mac_flows.loc[t,'bank'])
+    a5_policy_mac_flows.loc[t,'emissions'] = (mac_a5_ems_factor)*(a5_policy_mac_flows.loc[t,'demand'] + a5_policy_mac_flows.loc[t,'bank'])
+    # Calculate next year's bank
+    na5_policy_mac_flows.loc[t+1,'bank'] = (1-mac_na5_ems_factor)*(na5_policy_mac_flows.loc[t,'demand'] + na5_policy_mac_flows.loc[t,'bank'])
+    a5_policy_mac_flows.loc[t+1,'bank'] = (1-mac_a5_ems_factor)*(a5_policy_mac_flows.loc[t,'demand'] + a5_policy_mac_flows.loc[t,'bank']) 
+
+
+na5_policy_mac_flows.loc[2050,'emissions'] = (mac_na5_ems_factor)*(na5_policy_mac_flows.loc[2050,'demand'] + na5_policy_mac_flows.loc[2050,'bank'])
+a5_policy_mac_flows.loc[2050,'emissions'] = (mac_a5_ems_factor)*(a5_policy_mac_flows.loc[2050,'demand'] + a5_policy_mac_flows.loc[2050,'bank'])
+
+
+
 
 for t in range(2014, 2050):
     # Calculate emissions:
