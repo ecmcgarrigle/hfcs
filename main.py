@@ -8,50 +8,114 @@ import matplotlib.pyplot as plt
 
 # Create data frames to model material flows of HFCs:
 policy_flows = pd.DataFrame(
-    columns = ('demand', 'bank', 'emissions', 'recycling', 'production'), 
+    columns = ('demand', 'bank', 'emissions', 'recycling', 'production','recovery'), 
     index = range(2014, 2051)
     )
 
 na5_policy_mac_flows = pd.DataFrame(
-    columns = ('demand', 'bank', 'emissions', 'recycling', 'production'), 
+    columns = ('demand', 'bank', 'emissions', 'recycling', 'production','recovery'), 
     index = range(2015, 2051)
     )
 
 a5_policy_mac_flows = pd.DataFrame(
-    columns = ('demand', 'bank', 'emissions', 'recycling', 'production'), 
+    columns = ('demand', 'bank', 'emissions', 'recycling', 'production','recovery'), 
     index = range(2015, 2051)
     )
 
-# scenario 1 (Exponential Growth)
+# scenario 1 (Exponential Growth; TEAP Growth Rates)
+
+# MAC: Motor (Vehicle) Air Conditioning
+
 a5_mac_flows = pd.DataFrame(
-    columns = ('demand','bank','emissions','recovery','production'),
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
     index = range(2015,2051)
     )
 
 na5_mac_flows = pd.DataFrame(
-    columns = ('demand','bank','emissions','recovery','production'),
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+# SAC: Stationary Air Conditioning
+
+a5_sac_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+na5_sac_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
     index = range(2015,2051)
     )
  
-# Linear Extrapolation
+# DOM: Domestic Refrigeration
+
+a5_DOM_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+na5_DOM_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+# TRANS: Transport Refrigeration
+
+a5_TRANS_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+na5_TRANS_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+# IND: Industrial Refrigeration
+
+a5_IND_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+na5_IND_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+# COM: Commercial Refrigeration
+
+a5_COM_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+na5_COM_flows = pd.DataFrame(
+    columns = ('demand','bank','emissions','recovery','production','recycling'),
+    index = range(2015,2051)
+    )
+
+
+# Linear Extrapolation 
 a5_bau_flows = pd.DataFrame(
-   columns = ('demand','bank','emissions','recovery','production'),
+   columns = ('demand','bank','emissions','recovery','production','recycling'),
    index = range(2015,2051)
    )
 
 na5_bau_flows = pd.DataFrame(
-   columns = ('demand','bank','emissions','recovery','production'),
+   columns = ('demand','bank','emissions','recovery','production','recycling'),
    index = range(2015,2051)
    )
 
 # scenario 2: linear extrapolation growth scenario 
 a5_mac_scen2_flows = pd.DataFrame(
-   columns = ('demand','bank','emissions','recovery','production'),
+   columns = ('demand','bank','emissions','recovery','production','recycling'),
    index = range(2015,2051)
    )
 
 na5_mac_scen2_flows = pd.DataFrame(
-   columns = ('demand','bank','emissions','recovery','production'),
+   columns = ('demand','bank','emissions','recovery','production','recycling'),
    index = range(2015,2051)
    )
 
@@ -110,18 +174,26 @@ a5_bau_flows.loc[2016,'demand'] = linearExtrapolation(2014,2015,2016,537.83,a5_b
 na5_2015_emissions_estimate = 328 # Mt CO2-eq (TEAP 2009 updated supplement)
 a5_2015_emissions_estimate = 131 # Mt CO2-eq (TEAP 2009 updated supplement)
 
-#### Based on checking these numbers from the TEAP 2009 updated supplement with othe reports
+#### Based on checking these numbers from the TEAP 2009 updated supplement with the reports
 #### it seems that these bank and emissions estimates are generally underestimating by about 100 Mt CO2-eq, so they will be semi-accurate placeholders for now
 
 
 ## Extrapolate Consumption, Emissions, Banks for 2015-2050 BAU for NA5 and A5 Countries Separately
-for t in range(2017,2051):
+for t in range(2017,2051) :
     # Calculate consumption 
     na5_bau_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,na5_bau_flows.loc[t-2,'demand'],na5_bau_flows.loc[t-1,'demand'])
     a5_bau_flows.loc[t,'demand'] = linearExtrapolation(t-2,t-1,t,a5_bau_flows.loc[t-2,'demand'],a5_bau_flows.loc[t-1,'demand'])
 
 
 ##### Scenario 1: Model growth of each sector using exponential growth
+
+# Note: Sector bank percentages from TEAP 2009 report are based on the modeled banks in tonnes, no data was provided
+# for modeled banks in tCO2-eq, so these percentages are prone to error 
+
+### Assuming a 15% annual servicing of the bank
+
+servicing_pcnt = 0.15
+
 
 ### MAC
     #assume constant percentage break downs for total consumption into sectors
@@ -148,44 +220,227 @@ a5_mac_flows['demand'] = exponentialGrowth(a5_2015_mac_consumption_estimate,0.07
 
 
 # MAC bank estimates BAU 
-na5_mac_flows.loc[2015,'bank'] = 3191 # Mt CO2-eq (TEAP 2009 updated supplement)
-a5_mac_flows.loc[2015,'bank'] = 1127 # Mt CO2-eq (TEAP 2009 updated supplement)
+    # To estimate the bank of MAC HFC's, the sector bank percentages from TEAP 2009 report are applied to the 
+    # overall bank estimates (3191, 1127) (NA5, A5 Countries)
+na5_mac_flows.loc[2015,'bank'] = 3191*0.325942 # Mt CO2-eq (TEAP 2009 updated supplement)
+a5_mac_flows.loc[2015,'bank'] = 1127*0.250457 # Mt CO2-eq (TEAP 2009 updated supplement)
 
-na5_mac_scen2_flows.loc[2015,'bank'] = 3191
-a5_mac_scen2_flows.loc[2015,'bank'] = 1127
 
-na5_policy_mac_flows.loc[2015,'bank'] = 3191
-a5_policy_mac_flows.loc[2015,'bank'] = 1127
+##ignore scen2 flows for now
+na5_mac_scen2_flows.loc[2015,'bank'] = 3191*0.325942
+a5_mac_scen2_flows.loc[2015,'bank'] = 1127*0.250457
+
+na5_policy_mac_flows.loc[2015,'bank'] = 3191*0.325942
+a5_policy_mac_flows.loc[2015,'bank'] = 1127*0.250457
 
 mac_na5_ems_factor = 0.15175
 mac_a5_ems_factor = 0.15
 
-for t in range(2015,2050):
+for t in range(2015,2051) :
     # calculate emissions; Emissions Factor for NA5 MAC = 0.15175 (an average of factors for EU, USA, Japan, "Rest OECD")
         #Emissions factor for A5 MAC = 15% (VELDERS 2015si)
     na5_mac_flows.loc[t,'emissions'] = (mac_na5_ems_factor)*(na5_mac_flows.loc[t,'demand'] + na5_mac_flows.loc[t,'bank'])
     a5_mac_flows.loc[t,'emissions'] = (mac_a5_ems_factor)*(a5_mac_flows.loc[t,'demand'] + a5_mac_flows.loc[t,'bank'])
 
+    # calculate Recovery
+    na5_mac_flows.loc[t,'recovery'] = (servicing_pcnt)*(na5_mac_flows.loc[t,'bank'])
+    a5_mac_flows.loc[t,'recovery'] = (servicing_pcnt)*(na5_mac_flows.loc[t,'bank'])
+
     # calculate next year's bank
-    na5_mac_flows.loc[t+1,'bank'] = (1-mac_na5_ems_factor)*(na5_mac_flows.loc[t,'demand'] + na5_mac_flows.loc[t,'bank'])
-    a5_mac_flows.loc[t+1,'bank'] = (1-mac_a5_ems_factor)*(a5_mac_flows.loc[t,'demand'] + a5_mac_flows.loc[t,'bank'])
-
-na5_mac_flows.loc[2050,'emissions'] = (mac_na5_ems_factor)*(na5_mac_flows.loc[2050,'demand'] + na5_mac_flows.loc[2050,'bank'])
-a5_mac_flows.loc[2050,'emissions'] = (mac_a5_ems_factor)*(a5_mac_flows.loc[2050,'demand'] + a5_mac_flows.loc[2050,'bank'])
-
-
-# note: having the (1-ems_factor) attached to the bank calculation is the same as subtracting out emissions
-
-
-### SAC: Stationary Air Conditioning
+    if t != 2050 :
+        na5_mac_flows.loc[t+1,'bank'] = (1-mac_na5_ems_factor)*(na5_mac_flows.loc[t,'demand'] + na5_mac_flows.loc[t,'bank'])
+        a5_mac_flows.loc[t+1,'bank'] = (1-mac_a5_ems_factor)*(a5_mac_flows.loc[t,'demand'] + a5_mac_flows.loc[t,'bank'])
 
 
 
+# note: having the (1-ems_factor) attached to the bank calculation is the same as separately calculating emissions and subtracting them out
+
+# still scenario 1: exponential modeling
+##################### SAC: Stationary Air Conditioning
+
+a5_sac_flows.loc[2015,'demand'] = a5_bau_flows.loc[2015,'demand']*0.5017 # [Mt CO2-eq]
+na5_sac_flows.loc[2015,'demand'] = na5_bau_flows.loc[2015,'demand']*0.513 # [Mt CO2-eq]
+
+#extrapolate consumption exponentially; TEAP growth rates for NA5 countries are a non-weighted average of the given growth rates
+    # assumes equal weighting for NA5 Countries: Something to relax in the future? Weighted average? or break up by country?
+
+na5_sac_flows['demand'] = exponentialGrowth(na5_sac_flows.loc[2015,'demand'],0.026,2015,2050)
+a5_sac_flows['demand'] = exponentialGrowth(a5_sac_flows.loc[2015,'demand'],0.057,2015,2050)
+ 
+# Estimate SAC Bank by applying a sector percentage to overall bank estimate 
+
+na5_sac_flows.loc[2015,'bank'] = (0.393038)*3191
+a5_sac_flows.loc[2015,'bank'] = (0.258529)*1127
+
+sac_na5_ems_factor = 0.07125 # equally weighted average of 4 groups that are NA5 countries (Velders 2015si)
+sac_a5_ems_factor = 0.0665 # equally weighted average of 2 groups that make up A5 countries (Velders 2015si)
+
+
+for t in range(2015,2051):
+    # Calculate emissions
+    na5_sac_flows.loc[t,'emissions'] = (sac_na5_ems_factor)*(na5_sac_flows.loc[t,'bank'] + na5_sac_flows.loc[t,'demand'])
+    a5_sac_flows.loc[t,'emissions'] = (sac_a5_ems_factor)*(a5_sac_flows.loc[t,'bank'] + a5_sac_flows.loc[t,'demand'])
+    # Calculate Bank
+    if t != 2050 :
+        na5_sac_flows.loc[t+1,'bank'] = (1 - sac_na5_ems_factor)*(na5_sac_flows.loc[t,'bank'] + na5_sac_flows.loc[t,'demand'])
+        a5_sac_flows.loc[t+1,'bank'] = (1 - sac_a5_ems_factor)*(a5_sac_flows.loc[t,'bank'] + a5_sac_flows.loc[t,'demand'])
 
 
 
 
-##### Scenario 2: Linear Extrapolation Consumption Growth
+#################### Domestic Refrigeration Sector (DOM)
+
+# Generate consumption estimates for this sector as a percentage of total demand
+na5_DOM_flows.loc[2015,'demand'] = na5_bau_flows.loc[2015,'demand']*0.0037
+a5_DOM_flows.loc[2015,'demand'] = a5_bau_flows.loc[2015,'demand']*0.0387
+
+# Extrapolate the rest of consumption for the sector using exponential growth
+# growth rates are averages of the growth rates for the groups of countries within the NA5 and A5 groupings
+na5_DOM_flows['demand'] = exponentialGrowth(na5_DOM_flows.loc[2015,'demand'],0.016,2015,2050)
+a5_DOM_flows['demand'] = exponentialGrowth(a5_DOM_flows.loc[2015,'demand'],0.034,2015,2050)
+
+# Estimate DOM bank by applying a sector percentage to total bank estimate 
+
+na5_DOM_flows.loc[2015,'bank'] = (0.052884)*(3191)
+a5_DOM_flows.loc[2015,'bank'] = (0.176175)*(1127)
+
+dom_na5_ems_factor = 0.025
+dom_a5_ems_factor = 0.025
+
+# estimate the remaining variables through material flows
+
+for t in range(2015,2051):
+    # Calculate emissions
+    na5_DOM_flows.loc[t,'emissions'] = (dom_na5_ems_factor)*(na5_DOM_flows.loc[t,'demand'] + na5_DOM_flows.loc[t,'bank'])
+    a5_DOM_flows.loc[t,'emissions'] = (dom_a5_ems_factor)*(a5_DOM_flows.loc[t,'demand'] + a5_DOM_flows.loc[t,'bank'])
+
+    # Calculate bank
+    if t != 2050 :
+        na5_DOM_flows.loc[t+1,'bank'] = (1 - dom_na5_ems_factor)*(na5_DOM_flows.loc[t,'demand'] + na5_DOM_flows.loc[t,'bank'])
+        a5_DOM_flows.loc[t+1,'bank'] = (1 - dom_a5_ems_factor)*(a5_DOM_flows.loc[t,'demand'] + a5_DOM_flows.loc[t,'bank'])
+
+
+
+################# Commercial Refrigeration Sector (COM)
+
+# estimate Commercial refrigeration consumption as a percentage of total consumption
+na5_COM_flows.loc[2015,'demand'] = na5_bau_flows.loc[2015,'demand']*(0.2537)
+a5_COM_flows.loc[2015,'demand'] = a5_bau_flows.loc[2015,'demand']*(0.28)
+
+
+# Extrapolate Consumption using exponential growth
+
+na5_COM_flows['demand'] = exponentialGrowth(na5_COM_flows.loc[2015,'demand'],0.021,2015,2050)
+a5_COM_flows['demand'] = exponentialGrowth(a5_COM_flows.loc[2015,'demand'],0.039,2015,2050)
+
+# Estimate COM Bank in 2015 using percentage of the total bank
+
+na5_COM_flows.loc[2015,'bank'] = 3191*(0.169199)
+a5_COM_flows.loc[2015,'bank'] = 1127*(0.285630)
+
+# See Velders 2015si for these emissions factors 
+com_na5_ems_factor = 0.13475
+com_a5_ems_factor = 0.11
+
+# Material Flows to estimate the remaning banks and emissions
+
+for t in range(2015,2051): 
+    # Calculate Emissions
+    na5_COM_flows.loc[t,'emissions'] = (com_na5_ems_factor)*(na5_COM_flows.loc[t,'bank'] + na5_COM_flows.loc[t,'demand'])
+    a5_COM_flows.loc[t,'emissions'] = (com_a5_ems_factor)*(a5_COM_flows.loc[t,'demand'] + a5_COM_flows.loc[t,'bank'])
+
+    # Calculate Bank
+    if t != 2050 :
+        na5_COM_flows.loc[t+1,'bank'] = (1 - com_na5_ems_factor)*(na5_COM_flows.loc[t,'demand'] + na5_COM_flows.loc[t,'bank'])
+        a5_COM_flows.loc[t+1,'bank'] = (1 - com_a5_ems_factor)*(a5_COM_flows.loc[t,'demand'] + a5_COM_flows.loc[t,'bank'])
+
+
+############### Industrial Refrigeration (IND)
+
+# estimate Industrial refrigeration consumption as a percentage of total consumption
+na5_IND_flows.loc[2015,'demand'] = na5_bau_flows.loc[2015,'demand']*(0.0356)
+a5_IND_flows.loc[2015,'demand'] = a5_bau_flows.loc[2015,'demand']*(0.0185)
+
+
+# Extrapolate Consumption using exponential growth
+
+na5_IND_flows['demand'] = exponentialGrowth(na5_IND_flows.loc[2015,'demand'],0.01,2015,2050)
+a5_IND_flows['demand'] = exponentialGrowth(a5_IND_flows.loc[2015,'demand'],0.038,2015,2050)
+
+# Estimate IND Bank in 2015 using percentage of the total bank
+
+na5_IND_flows.loc[2015,'bank'] = 3191*(0.046744)
+a5_IND_flows.loc[2015,'bank'] = 1127*(0.025824)
+
+# See Velders 2015si for these emissions factors 
+ind_na5_ems_factor = 0.0875
+ind_a5_ems_factor = 0.11
+
+# Material Flows to estimate the remaning banks and emissions
+
+for t in range(2015,2051): 
+    # Calculate Emissions
+    na5_IND_flows.loc[t,'emissions'] = (ind_na5_ems_factor)*(na5_IND_flows.loc[t,'bank'] + na5_IND_flows.loc[t,'demand'])
+    a5_IND_flows.loc[t,'emissions'] = (ind_a5_ems_factor)*(a5_IND_flows.loc[t,'demand'] + a5_IND_flows.loc[t,'bank'])
+
+    # Calculate Bank
+    if t != 2050 :
+        na5_IND_flows.loc[t+1,'bank'] = (1 - ind_na5_ems_factor)*(na5_IND_flows.loc[t,'demand'] + na5_IND_flows.loc[t,'bank'])
+        a5_IND_flows.loc[t+1,'bank'] = (1 - ind_a5_ems_factor)*(a5_IND_flows.loc[t,'demand'] + a5_IND_flows.loc[t,'bank'])
+
+
+
+#####3####### Transport Refrigeration (TRANS) sector
+
+# estimate transportation refrigeration consumption as a percentage of total consumption
+na5_TRANS_flows.loc[2015,'demand'] = na5_bau_flows.loc[2015,'demand']*(0.0165)
+a5_TRANS_flows.loc[2015,'demand'] = a5_bau_flows.loc[2015,'demand']*(0.0169)
+
+
+# Extrapolate Consumption using exponential growth
+
+na5_TRANS_flows['demand'] = exponentialGrowth(na5_TRANS_flows.loc[2015,'demand'],0.02,2015,2050)
+a5_TRANS_flows['demand'] = exponentialGrowth(a5_TRANS_flows.loc[2015,'demand'],0.0425,2015,2050)
+
+# Estimate COM Bank in 2015 using percentage of the total bank
+
+na5_TRANS_flows.loc[2015,'bank'] = 3191*(0.012194)
+a5_TRANS_flows.loc[2015,'bank'] = 1127*(0.003385)
+
+# See Velders 2015si for these emissions factors (Velders 2015si)
+trans_na5_ems_factor = 0.197
+trans_a5_ems_factor = 0.197 ### No emissions factor given for A5/developing countries, so for now, will assume they are the same as NA5 as a place holder
+
+
+# Material Flows to estimate the remaning banks and emissions
+
+for t in range(2015,2051): 
+    # Calculate Emissions
+    na5_TRANS_flows.loc[t,'emissions'] = (trans_na5_ems_factor)*(na5_TRANS_flows.loc[t,'bank'] + na5_TRANS_flows.loc[t,'demand'])
+    a5_TRANS_flows.loc[t,'emissions'] = (trans_a5_ems_factor)*(a5_TRANS_flows.loc[t,'demand'] + a5_TRANS_flows.loc[t,'bank'])
+
+    # Calculate Bank
+    if t != 2050 :
+        na5_TRANS_flows.loc[t+1,'bank'] = (1 - trans_na5_ems_factor)*(na5_TRANS_flows.loc[t,'demand'] + na5_TRANS_flows.loc[t,'bank'])
+        a5_TRANS_flows.loc[t+1,'bank'] = (1 - trans_a5_ems_factor)*(a5_TRANS_flows.loc[t,'demand'] + a5_TRANS_flows.loc[t,'bank'])
+
+
+
+
+## Sum up all the sectors to obtain total demand/consumption for each group (NA5 and A5)
+
+
+
+
+
+
+
+
+
+
+
+
+##### Scenario 2: Linear Extrapolation Consumption Growth (holding off for now)
 
 # Extrapolate MAC HFC consumption using linear extrapolation
 
@@ -195,21 +450,21 @@ for t in range(2017,2051):
 
 # Calculate emissions and banks based on material flows 
 
-for t in range(2015,2050):
+for t in range(2015,2051):
     # calculate emissions; Emissions Factor for NA5 MAC = 0.15175 (an average of factors for EU, USA, Japan, "Rest OECD")
         #Emissions factor for A5 MAC = 15% (VELDERS 2015si)
     na5_mac_scen2_flows.loc[t,'emissions'] = (mac_na5_ems_factor)*(na5_mac_scen2_flows.loc[t,'demand'] + na5_mac_scen2_flows.loc[t,'bank'])
     a5_mac_scen2_flows.loc[t,'emissions'] = (mac_a5_ems_factor)*(a5_mac_scen2_flows.loc[t,'demand'] + a5_mac_scen2_flows.loc[t,'bank'])
 
     # calculate next year's bank
-    na5_mac_scen2_flows.loc[t+1,'bank'] = (1-mac_na5_ems_factor)*(na5_mac_scen2_flows.loc[t,'demand'] + na5_mac_scen2_flows.loc[t,'bank'])
-    a5_mac_scen2_flows.loc[t+1,'bank'] = (1-mac_a5_ems_factor)*(a5_mac_scen2_flows.loc[t,'demand'] + a5_mac_scen2_flows.loc[t,'bank'])
-
-na5_mac_scen2_flows.loc[2050,'emissions'] = (mac_na5_ems_factor)*(na5_mac_scen2_flows.loc[2050,'demand'] + na5_mac_scen2_flows.loc[2050,'bank'])
-a5_mac_scen2_flows.loc[2050,'emissions'] = (mac_a5_ems_factor)*(a5_mac_scen2_flows.loc[2050,'demand'] + a5_mac_scen2_flows.loc[2050,'bank'])
+    if t != 2050 :
+        na5_mac_scen2_flows.loc[t+1,'bank'] = (1-mac_na5_ems_factor)*(na5_mac_scen2_flows.loc[t,'demand'] + na5_mac_scen2_flows.loc[t,'bank'])
+        a5_mac_scen2_flows.loc[t+1,'bank'] = (1-mac_a5_ems_factor)*(a5_mac_scen2_flows.loc[t,'demand'] + a5_mac_scen2_flows.loc[t,'bank'])
 
 
-#####Scenario 3: applying TEAP percentages for sector growth and interpolating between those points
+
+
+#####Scenario 3: applying TEAP percentages for sector growth and interpolating between those points (just thought I'd try it out)
 
 # MAC consumption estimates for 2010, 2015, 2020, 2025, and 2030; based on TEAP demand percentages by sector
 na5_mac_consumption_estimates = [na5_historical_consumption[18]*0.269,na5_bau_flows.loc[2015,'demand']*0.1776,na5_bau_flows.loc[2020,'demand']*0.1478,na5_bau_flows.loc[2025,'demand']*0.1307,na5_bau_flows.loc[2030,'demand']*0.129]
@@ -233,7 +488,7 @@ for t in range(2031,2051):
 
 
 
-##Policy Scenario
+## Policy Scenario
 # Interpolate policy targets (linear interpolation):
 year = list(range(2014, 2051))
 na5_policy = np.interp(year, na5_policy_years, na5_policy_targets)
@@ -309,17 +564,15 @@ rec_fac = 0.4 # recycling factor (as a fraction of emissions factor)
 
 # MVAC Banks, emissions, recycling, demand for policy scenario
 
-for t in range(2015,2050):
+for t in range(2015,2051):
     # Calculate emissions
     na5_policy_mac_flows.loc[t,'emissions'] = (mac_na5_ems_factor)*(na5_policy_mac_flows.loc[t,'demand'] + na5_policy_mac_flows.loc[t,'bank'])
     a5_policy_mac_flows.loc[t,'emissions'] = (mac_a5_ems_factor)*(a5_policy_mac_flows.loc[t,'demand'] + a5_policy_mac_flows.loc[t,'bank'])
     # Calculate next year's bank
+    if t != 2050 :
     na5_policy_mac_flows.loc[t+1,'bank'] = (1-mac_na5_ems_factor)*(na5_policy_mac_flows.loc[t,'demand'] + na5_policy_mac_flows.loc[t,'bank'])
     a5_policy_mac_flows.loc[t+1,'bank'] = (1-mac_a5_ems_factor)*(a5_policy_mac_flows.loc[t,'demand'] + a5_policy_mac_flows.loc[t,'bank']) 
 
-
-na5_policy_mac_flows.loc[2050,'emissions'] = (mac_na5_ems_factor)*(na5_policy_mac_flows.loc[2050,'demand'] + na5_policy_mac_flows.loc[2050,'bank'])
-a5_policy_mac_flows.loc[2050,'emissions'] = (mac_a5_ems_factor)*(a5_policy_mac_flows.loc[2050,'demand'] + a5_policy_mac_flows.loc[2050,'bank'])
 
 
 
