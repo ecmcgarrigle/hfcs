@@ -82,6 +82,41 @@ bank_prcnts = { ('MAC','NA5') : 0.325942 , ('MAC','A5') : 0.250457, ('SAC','A5')
     'IND','NA5') : 0.046744, ('IND','A5') : 0.025824, ('DOM','NA5') : 0.052884, ('DOM','A5') : 0.176175 }
 
 
+### Insert Servicing Demand Tables from TEAP 2016 
+## Mt CO2-eq (reported in kt CO2-eq from TEAP 2016)
+
+servc_demand_estimates = { ('MAC','NA5',2015) : 65.959, ('MAC','NA5',2020) : 57.008, ('MAC','NA5',2025) : 42.495, ('MAC','NA5',2030) : 27.579, ('MAC','NA5',2035) : 22.448, (
+    'MAC','NA5',2040) : 26.023, ('MAC','NA5',2045): 30.167, ('MAC','NA5',2050): 34.972, ('SAC','NA5',2015) : 48.696, ('SAC','NA5',2020) : 76.968, ('SAC','NA5',2025) : 98.555, (
+    'SAC','NA5',2030) : 105.746,  ('SAC','NA5',2035) : 116.640, ('SAC','NA5',2040) : 130.410, ('SAC','NA5',2045): 146.371, ('SAC','NA5',2050): 164.875,(
+    'DOM','NA5',2015) : 0.004, ('DOM','NA5',2020) : 0.003, ('DOM','NA5',2025) : 0.002, ('DOM','NA5',2030) : 0.001, (
+    'DOM','NA5',2035) : 0.001, ('DOM','NA5',2040) : 0.002, ('DOM','NA5',2045): 0.002, ('DOM','NA5',2050): 0.001, (
+    'COM','NA5',2015) : 52.299, ('COM','NA5',2020) : 40.636, ('COM','NA5',2025) : 25.944, ('COM','NA5',2030) : 18.361, (
+    'COM','NA5',2035) : 16.998, ('COM','NA5',2040) : 19.705, ('COM','NA5',2045): 22.844, ('COM','NA5',2050): 26.482, (
+    'IND','NA5',2015) : 2.205, ('IND','NA5',2020) : 2.295, ('IND','NA5',2025) : 2.123, ('IND','NA5',2030) : 1.848, (
+    'IND','NA5',2035) : 1.779, ('IND','NA5',2040) : 1.909, ('IND','NA5',2045): 1.941, ('IND','NA5',2050): 1.957, (
+    'TRANS','NA5',2015) : 3.362, ('TRANS','NA5',2020) : 3.495, ('TRANS','NA5',2025) : 3.104, ('TRANS','NA5',2030) : 2.682, (
+    'TRANS','NA5',2035) : 2.429, ('TRANS','NA5',2040) : 2.312, ('TRANS','NA5',2045): 2.177, ('TRANS','NA5',2050): 2.020, (
+    'MAC','A5',2015) : 24.465, ('MAC','A5',2020) : 33.615, ('MAC','A5',2025) : 42.676, ('MAC','A5',2030) : 54.204, ('MAC','A5',2035) : 69.179, (
+    'MAC','A5',2040) : 88.292, ('MAC','A5',2045): 112.686, ('MAC','A5',2050): 143.819, ('SAC','A5',2015) : 93.574, ('SAC','A5',2020) : 207.716, ('SAC','A5',2025) : 376.891, (
+    'SAC','A5',2030) : 588.252,  ('SAC','A5',2035) : 806.125, ('SAC','A5',2040) : 995.730, ('SAC','A5',2045): 1151.882, ('SAC','A5',2050): 1265.513,(
+    'DOM','A5',2015) : 0.676, ('DOM','A5',2020) : 0.948, ('DOM','A5',2025) : 1.210, ('DOM','A5',2030) : 1.447, (
+    'DOM','A5',2035) : 1.709, ('DOM','A5',2040) : 2.089, ('DOM','A5',2045): 2.572, ('DOM','A5',2050): 3.196, (
+    'COM','A5',2015) : 42.163, ('COM','A5',2020) : 97.346, ('COM','A5',2025) : 180.431, ('COM','A5',2030) : 283.822, (
+    'COM','A5',2035) : 407.198, ('COM','A5',2040) : 540.880, ('COM','A5',2045): 683.077, ('COM','A5',2050): 851.240, (
+    'IND','A5',2015) : 6.858, ('IND','A5',2020) : 16.294, ('IND','A5',2025) : 30.257, ('IND','A5',2030) : 46.901, (
+    'IND','A5',2035) : 64.494, ('IND','A5',2040) : 84.427, ('IND','A5',2045): 107.328, ('IND','A5',2050): 133.933, (
+    'TRANS','A5',2015) : 3.201, ('TRANS','A5',2020) : 5.416, ('TRANS','A5',2025) : 7.948, ('TRANS','A5',2030) : 10.267, (
+    'TRANS','A5',2035) : 12.730, ('TRANS','A5',2040) : 15.823, ('TRANS','A5',2045): 19.888, ('TRANS','A5',2050): 24.821}
+
+## A dictionary that contains servicing demand arrays for each sector and region; f
+## for example: serv_demand_sched.get( ('MAC','NA5') ) returns an array of servicing demand values from 2014 to 2050 for the MAC sector for NA5 countries 
+servc_demand_arrs = {}
+
+estimate_years_TEAP = [2014,2015,2020,2025,2030,2035,2040,2045,2050] # Years for TEAP 2016 estimates
+
+
+
+
 ### Assumptions
 
 # SAC NA5 ems factor is an equally weighted average of 4 groups that are NA5 countries (Velders 2015si)
@@ -132,6 +167,23 @@ def exponentialGrowth(x_0,r,t_0,t_f):
         xarray.append(x)
     return xarray
 
+
+# Interpolate servicing demand to create a full demand schedule from 2015-2050 
+
+for region in range(0,len(region_List)):
+    for sector in range(0,len(sector_List)):
+        estimates = []
+        interp_servicing_demand = []
+        for t in range(2015,2055,5):
+            # Add each servicing demand estimate to a list for each sector
+            estimates.append(servc_demand_estimates[(sector_List[sector],region_List[region],t)])
+        # Extrapolate a 2014 estimate and insert it in the beginning of the estimates array
+        estimate_2014 = linearExtrapolation(2015,2020,2014,estimates[0],estimates[1])
+        estimates.insert(0,estimate_2014)
+        # interpolate the demand after the list is filled 
+        interp_servicing_demand = np.interp(list(range(2014,2051)),estimate_years_TEAP,estimates)
+        # Add the interpolated demand schedule to its dictionary 
+        servc_demand_arrs.update( { (sector_List[sector], region_List[region]) : interp_servicing_demand  } )
 
 
 
@@ -286,6 +338,14 @@ data_frames[('exp_growth','NA5','TRANS')].loc[2020:2050,'demand'] = exponentialG
 data_frames[('exp_growth','A5','TRANS')].loc[2020:2050,'demand'] = exponentialGrowth(data_frames[('exp_growth','A5','TRANS')].loc[2020,'demand'],0.045,2020,2050)
 
 
+
+########### Foams sector
+
+# estimate foams refrigeration consumption as a percentage of total consumption 
+#data_frames[('exp_growth','NA5','FOAMS')].loc[2014,'demand'] = 
+
+
+
 ### add foams, fire, and aerosls sectors
 
 ####### Aerosols 
@@ -349,7 +409,6 @@ data_frames[('exp_growth','A5','TRANS')].loc[2020:2050,'demand'] = exponentialGr
 ####################### Scenario 2 (linear interpolation of 5-year TEAP demand estimates) - TEAP 2016
 
 #### NA5 are placeholder for now, consider using more accurate demand estimates 
-TEAP_estimate_years = [2014,2015,2020,2025,2030,2035,2040,2045,2050]
 
 
 ###### Motor Air Conditioning (MAC) 
@@ -357,8 +416,8 @@ na5_mac_demand_estimates = [linearExtrapolation(2015,2020,2014,88.867,62.970),88
 a5_mac_demand_estimates = [linearExtrapolation(2015,2020,2014,66.815,86.684),66.815,86.684,110.406,140.647,179.505,229.099,292.395,373.178] # Mt CO2-eq
 
 
-data_frames[('interp','NA5','MAC')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,na5_mac_demand_estimates)
-data_frames[('interp','A5','MAC')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,a5_mac_demand_estimates)
+data_frames[('interp','NA5','MAC')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,na5_mac_demand_estimates)
+data_frames[('interp','A5','MAC')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,a5_mac_demand_estimates)
 
 
 
@@ -367,8 +426,8 @@ data_frames[('interp','A5','MAC')]['demand'] = np.interp(list(range(2014,2051)),
 na5_sac_demand_estimates = [ linearExtrapolation(2015,2020,2014,197.747, 226.484),197.747,226.484,271.380,306.098,348.903,399.665,458.512,526.733] # Mt CO2-eq
 a5_sac_demand_estimates = [ linearExtrapolation(2015,2020,2014,297.348,540.012),297.348,540.012,836.773,1172.226,1435.230,1673.455,1881.983,2052.031] # Mt CO2-eq
 
-data_frames[('interp','NA5','SAC')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,na5_sac_demand_estimates)
-data_frames[('interp','A5','SAC')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,a5_sac_demand_estimates)
+data_frames[('interp','NA5','SAC')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,na5_sac_demand_estimates)
+data_frames[('interp','A5','SAC')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,a5_sac_demand_estimates)
 
 
 
@@ -378,8 +437,8 @@ data_frames[('interp','A5','SAC')]['demand'] = np.interp(list(range(2014,2051)),
 na5_TRANS_demand_estimates = [ linearExtrapolation(2015,2020,2014,6.343,4.174),6.343,4.174,3.993,3.713,3.623,3.696,3.782,3.881] # Mt CO2-eq
 a5_TRANS_demand_estimates = [ linearExtrapolation(2015,2020,2014,8.809,11.212),8.809,11.212,15.744,20.565,25.563,31.814,39.817,49.656] # Mt CO2-eq
 
-data_frames[('interp','NA5','TRANS')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,na5_TRANS_demand_estimates)
-data_frames[('interp','A5','TRANS')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,a5_TRANS_demand_estimates)
+data_frames[('interp','NA5','TRANS')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,na5_TRANS_demand_estimates)
+data_frames[('interp','A5','TRANS')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,a5_TRANS_demand_estimates)
 
 
 ##### Commercial Refrigeration (COM)
@@ -387,8 +446,8 @@ data_frames[('interp','A5','TRANS')]['demand'] = np.interp(list(range(2014,2051)
 na5_COM_demand_estimates = [ linearExtrapolation(2015,2020,2014,66.582,51.407),66.582,51.407,35.389,29.310,29.691,34.420,39.902,46.257] # Mt CO2-eq
 a5_COM_demand_estimates = [ linearExtrapolation(2015,2020,2014,130.374,231.006),130.374,231.006,401.142,604.083,806.301,1038.235,1302.872,1623.617] # Mt CO2-eq
 
-data_frames[('interp','NA5','COM')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,na5_COM_demand_estimates)
-data_frames[('interp','A5','COM')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,a5_COM_demand_estimates)
+data_frames[('interp','NA5','COM')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,na5_COM_demand_estimates)
+data_frames[('interp','A5','COM')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,a5_COM_demand_estimates)
 
 
 
@@ -397,8 +456,8 @@ data_frames[('interp','A5','COM')]['demand'] = np.interp(list(range(2014,2051)),
 na5_IND_demand_estimates = [ linearExtrapolation(2015,2020,2014,4.375,3.530),4.375,3.530,3.134,2.524,2.562,2.817,2.994,3.178] # Mt CO2-eq
 a5_IND_demand_estimates = [ linearExtrapolation(2015,2020,2014,14.058,27.623),14.058,27.623,48.071,67.841,89.605,114.539,143.440,177.238] # Mt CO2-eq
 
-data_frames[('interp','NA5','IND')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,na5_IND_demand_estimates)
-data_frames[('interp','A5','IND')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,a5_IND_demand_estimates)
+data_frames[('interp','NA5','IND')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,na5_IND_demand_estimates)
+data_frames[('interp','A5','IND')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,a5_IND_demand_estimates)
 
 
 #### Domestic Refrigeration (DOM)
@@ -406,12 +465,12 @@ data_frames[('interp','A5','IND')]['demand'] = np.interp(list(range(2014,2051)),
 na5_DOM_demand_estimates = [ linearExtrapolation(2015,2020,2014,1.895,1.255),1.895,1.255,1.256,1.143,1.325,1.536,1.781,2.064] # Mt CO2-eq
 a5_DOM_demand_estimates = [ linearExtrapolation(2015,2020,2014,17.422,20.136),17.442,20.136,24.029,28.594,35.550,44.248,55.110,68.668] # Mt CO2-eq
 
-data_frames[('interp','NA5','DOM')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,na5_DOM_demand_estimates)
-data_frames[('interp','A5','DOM')]['demand'] = np.interp(list(range(2014,2051)),TEAP_estimate_years,a5_DOM_demand_estimates)
+data_frames[('interp','NA5','DOM')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,na5_DOM_demand_estimates)
+data_frames[('interp','A5','DOM')]['demand'] = np.interp(list(range(2014,2051)),estimate_years_TEAP,a5_DOM_demand_estimates)
 
 
 
-# sum the demand of each sector for each region, used for india proposal 
+# sum the demand of each sector for each region, needed to model the demand from the india proposal 
 
 for scenario in range(0,len(scenario_List)):
     if (scenario_List[scenario] == 'interp') or (scenario_List[scenario] == 'exp_growth') :
@@ -542,7 +601,7 @@ for scenario in range(0,len(scenario_List)):
                 # small assumption: assume 2014 percentage breakdowns are the same as 2015 (small change between years)
                 data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2014,'demand'] = demand_est * (
                     sector_prcnts[sector_List[sector],region_List[region],2015])
-                # define the "last year", which is the last year before the demand estimates stay constant until 2050
+                # define the "last year", which is the last year after which the demand estimates stay constant until 2050
                 if scenario_List[scenario] == 'policy_NA' :
                     if region_List[region] == 'NA5' : # extrapolate until 2036, constant afterwards 
                         last_year = 2036
@@ -607,15 +666,25 @@ for scenario in range(0,len(scenario_List)):
             for t in range(2014,2051):
 
                 # Re-adjust Demand given servicing of the bank
+
+                ## using a 15% servicing percentage 
                 #data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand'] -= (
                     #servicing_pcnt) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank'])
 
-                # Calculate Recovery as a fixed percentage of the bank
-                data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery'] = (servicing_pcnt
-                        ) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank']) 
+                ## Using an array of servicing demand from 2014:2050
+                data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand'] -= servc_demand_arrs.get( 
+                    (sector_List[sector],region_List[region]) )[t-2014] 
+
+                # Calculate Recovery as a fixed percentage of the bank using a servicing percentage (15%)
+                #data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery'] = (
+                    # servicing_pcnt) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank']) 
+
+                # Calculate Recovery as equal to servicing demand in a given year 
+                data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery'] = servc_demand_arrs.get(
+                    (sector_List[sector],region_List[region]) )[t-2014] 
 
                 # Calculate a recycling rate (as a fraction of emissions) that corresponds to an amount of recycling that is 20% of servicing 
-                    ## Upper bound of recycling scenario 
+                    ## Upper bound of recycling scenario = 20% 
                 rec_fac = ((0.20)*(data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery']))/((
                     data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank'] + data_frames[(
                         scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand']) * (ems_fac))
