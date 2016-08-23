@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
     ## exp_growth = Demand modeled by Exponential Growth
 
 ## Start with just Refrigeration and AC; add more sectors later 
-sector_List = ['MAC','SAC','DOM','IND','COM','TRANS']
+sector_List = ['MAC','SAC','DOM','IND','COM','TRANS','FOAMS','FIRE']
  # add 'policy_Islands' to the policy scenarios later
 scenario_List = ['policy_EU','policy_NA','policy_India','interp','exp_growth']
 region_List = ['NA5','A5']
@@ -55,12 +55,9 @@ for scenario in range(0,len(scenario_List)):
 
 ems_factors_dict = {('MAC','NA5') : 0.15175, ('MAC','A5'): 0.15, ('SAC','NA5') : 0.07125, ('SAC','A5') : 0.0665, 
     ('IND','NA5') : 0.0875, ('IND','A5') : 0.11, ('DOM','NA5') : 0.025, ('DOM','A5') : 0.025, ('COM','NA5') : 0.13475,
-    ('COM','A5') : 0.11, ('TRANS','NA5') : 0.197, ('TRANS','A5') : 0.197}
-
-
-na5_mac_cons_prcntgs = [0.1776,0.1478,0.1307,0.129]
-a5_mac_cons_prcntgs = [0.144,0.128,0.109,0.1026]
-
+    ('COM','A5') : 0.11, ('TRANS','NA5') : 0.197, ('TRANS','A5') : 0.197, ('FIRE','NA5') : 0.03, ('FIRE','A5') : 0.03, 
+    ('FOAMS','NA5') : 0.05, ('FOAMS','A5') : 0.05 }
+## Foams emissions factors vary between foams and will be applied to percentages of the foam bank in the flows section
 
 ### Insert Sector-breakdown percentages of demand here: (TEAP 2014b) (Mt CO2-eq)
 sector_prcnts = {('MAC','NA5',2015) : 0.1776, ('MAC','NA5',2020) : 0.1478, ('MAC','NA5',2025) : 0.1307, ('MAC','NA5',2030) : 0.129, (
@@ -111,6 +108,9 @@ servc_demand_estimates = { ('MAC','NA5',2015) : 65.959, ('MAC','NA5',2020) : 57.
 ## A dictionary that contains servicing demand arrays for each sector and region; f
 ## for example: serv_demand_sched.get( ('MAC','NA5') ) returns an array of servicing demand values from 2014 to 2050 for the MAC sector for NA5 countries 
 servc_demand_arrs = {}
+
+## A dictionary that contains arrays of interpolated sector percentages between estimates and will likely contain extrapolated percentages 
+sector_percnts_arrs = {}
 
 estimate_years_TEAP = [2014,2015,2020,2025,2030,2035,2040,2045,2050] # Years for TEAP 2016 estimates
 
@@ -168,37 +168,44 @@ def exponentialGrowth(x_0,r,t_0,t_f):
     return xarray
 
 
-# Interpolate servicing demand to create a full demand schedule from 2015-2050 
+# Interpolate servicing demand to create a full demand list from 2015-2050 
+
 
 for region in range(0,len(region_List)):
     for sector in range(0,len(sector_List)):
-        estimates = []
-        interp_servicing_demand = []
-        for t in range(2015,2055,5):
-            # Add each servicing demand estimate to a list for each sector
-            estimates.append(servc_demand_estimates[(sector_List[sector],region_List[region],t)])
-        # Extrapolate a 2014 estimate and insert it in the beginning of the estimates array
-        estimate_2014 = linearExtrapolation(2015,2020,2014,estimates[0],estimates[1])
-        estimates.insert(0,estimate_2014)
-        # interpolate the demand after the list is filled 
-        interp_servicing_demand = np.interp(list(range(2014,2051)),estimate_years_TEAP,estimates)
-        # Add the interpolated demand schedule to its dictionary 
-        servc_demand_arrs.update( { (sector_List[sector], region_List[region]) : interp_servicing_demand  } )
+        if (sector_List[sector] != 'FIRE') and (sector_List[sector] != 'FOAMS') :
+            # Servicing Demand 
+            estimates = []
+            interp_servicing_demand = []
+            for t in range(2015,2055,5):
+                # Add each servicing demand estimate to a list for each sector
+                estimates.append(servc_demand_estimates[(sector_List[sector],region_List[region],t)])
+            # Extrapolate a 2014 estimate and insert it in the beginning of the estimates array
+            estimate_2014 = linearExtrapolation(2015,2020,2014,estimates[0],estimates[1])
+            estimates.insert(0,estimate_2014)
+            # interpolate the demand after the list is filled 
+            interp_servicing_demand = np.interp(list(range(2014,2051)),estimate_years_TEAP,estimates)
+            # Add the interpolated demand to its dictionary 
+            servc_demand_arrs.update( { (sector_List[sector], region_List[region]) : interp_servicing_demand  } )
+
+            # Sector Percents 
+            prcnt_estimates = []
+            interp_sector_percents = []
+            for t in range(2015,2035,5):
+                # Add each percentage to the list
+                prcnt_estimates.append(sector_prcnts.get((sector_List[sector],region_List[region],t)))
+            # Extrapolate a 2014 estimate and insert into the beginning of the estimates array 
+            prcnt_estimates.insert(0,linearExtrapolation(2015,2020,2014,prcnt_estimates[0],prcnt_estimates[1]))
+            # interpolate the percentages 
+            interp_sector_percents = np.interp(list(range(2014,2031)),[2014,2015,2020,2025,2030],prcnt_estimates)
+            # Add the percentages list to a dictionary 
+            sector_percnts_arrs.update( { (sector_List[sector],region_List[region]) : interp_sector_percents } )
 
 
 
 # Reported Consumption from Excel Spreadsheet for A5 and NA5 Countries t: [1992,2014]  [Mt CO2-eq]
 na5_historical_consumption = [1.13,14.81,32.68,42.78,47.30,58.57,77.05,107.78,152.24,166.05,198.82,240.64,278.20,316.42,345.07,379.10,416.99,460.90,495.30,595.63,670.99,694.67,695.46]
 a5_historical_consumption = [0.02,0.41,0.93,1.66,2.62,3.64,4.59,5.90,7.88,14.21,22.04,29.68,39.55,52.76,91.97,126.79,149.58,184.90,243.65,343.74,397.54,466.01,537.83]
-
-
-## Extrapolate 2015 Consumption for NA5 and A5 countries
-
-na5_2014_cons_estimate = 695.47 
-a5_2014_cons_estimate = 537.83
-
-na5_2015_cons_estimate = linearExtrapolation(2013,2014,2015,694.67,695.46)
-a5_2015_cons_estimate = linearExtrapolation(2013,2014,2015,466.01,537.83)
 
 
 ## Fill in the 2015 estimates for banks for each sector based on percentage breakdowns for sectors 
@@ -209,15 +216,13 @@ for scenario in range(0,len(scenario_List)):
         elif region_List[region] == 'A5' :
             bank_estimate = 1127
         for sector in range(0,len(sector_List)):
-            data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[2015,'bank'] = bank_estimate * (
-                bank_prcnts.get( (sector_List[sector], region_List[region]) )) # Mt CO2-eq (TEAP 2009 updated supplement)
+            if (sector_List[sector] != 'FIRE') and (sector_List[sector] != 'FOAMS') :
+                data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[2015,'bank'] = bank_estimate * (
+                    bank_prcnts.get( (sector_List[sector], region_List[region]) )) # Mt CO2-eq (TEAP 2009 updated supplement)
 
 
 
 rec_fac = 0.4 # recycling factor (as a fraction of emissions factor)
-
-a5_2015_emissions_estimate = 328 # Mt CO2-eq (TEAP 2009 updated supplement)
-a5_2015_emissions_estimate = 131 # Mt CO2-eq (TEAP 2009 updated supplement)
 
 
 #### Based on checking these numbers from the TEAP 2009 updated supplement with the reports
@@ -239,6 +244,105 @@ a5_2015_emissions_estimate = 131 # Mt CO2-eq (TEAP 2009 updated supplement)
 ### Assuming a 15% annual servicing of the bank
 
 servicing_pcnt = 0.15
+
+
+
+########### Foams sector
+
+# estimate foams refrigeration consumption as a percentage of total consumption 
+na5_foam_dem_estimates = [79.003, 86.049, 95.004, 104.892] # Mt CO2-eq; 2015,2020,2025,2030
+annual_na5_foam_growth_rate = 0.0218 # Calculated from TEAP 2014b reported HFC foams demand
+a5_foam_dem_estimates = [13.466,21.035,33.408,41.633] # Mt CO2-eq; 2015,2020,2025,2030; HFC's only; a lot smaller because of increased use of HCFC in A5 countries 
+annual_a5_foam_growth_rate = 0.139 ## large, given HCFC's are still phasing out of A5 countries 
+
+# data_frames[('exp_growth','NA5','FOAMS')].loc[2015,'demand'] = 79.003
+# data_frames[('exp_growth','A5','FOAMS')].loc[2015,'demand'] = 13.466 
+data_frames[('exp_growth','NA5','FOAMS')]['demand'] = exponentialGrowth(
+    linearExtrapolation(2015,2020,2014,79.003,86.049),0.0218,2014,2050)
+data_frames[('exp_growth','A5','FOAMS')]['demand'] = exponentialGrowth(
+    linearExtrapolation(2015,2020,2014,13.466,21.035),0.139,2014,2050)
+
+data_frames[('interp','NA5','FOAMS')]['demand'] = data_frames[('exp_growth','NA5','FOAMS')]['demand']
+data_frames[('interp','A5','FOAMS')]['demand'] = data_frames[('exp_growth','A5','FOAMS')]['demand']
+
+#### No A5/NA5 breakdown provided for banks; estimate using percentages from demand: 85% NA5; 15% A5
+    ### These percentages are very likely to change as A5 grows; these are just for 2015 estimate 
+
+### Global foam bank = 604.811 # Mt CO2-eq 
+
+for scenario in range(0,len(scenario_List)):
+    data_frames[(scenario_List[scenario],'NA5','FOAMS')].loc[2015,'bank'] =  514.089 # [Mt CO2-eq]
+    data_frames[(scenario_List[scenario],'A5','FOAMS')].loc[2015,'bank'] = 90.722 # [Mt CO2-eq]
+
+
+
+### Both BAU scenarios use exponential growth because of lack of FOAM data available
+
+####### Aerosols 
+
+# estimate Aerosol consumption 
+
+# extrapolate aerosol consumption using exponential growth with TEAP 2009 updated supplement growth rates
+
+# Estimate Aerosol bank 
+
+# See Velders 2015si for emissions factors
+
+
+# Velders 2015si breaks up foams emissions factors into open cell foams, extruded polystyrene foams (XPS), and Polyurethane foams (PUR)
+
+#foams_emissions_fac = 0.026 # global estimate; the average of 6 ratios of TEAP modeled emissions to banks, averaged over the years 2015-2020 (one ratio for each year)
+
+
+####### Fire Exstinguishing Systems
+
+# Estimate HFC-fire bank 
+
+
+for scenario in range(0,len(scenario_List)):
+    data_frames[(scenario_List[scenario],'NA5','FIRE')].loc[2015,'bank'] =  147.996 # [Mt CO2-eq]
+    data_frames[(scenario_List[scenario],'A5','FIRE')].loc[2015,'bank'] = 63.945 # [Mt CO2-eq]
+
+
+## Fire growth rate based on 2015-2020 change in the bank 
+a5_fire_grwth_rate = 0.07757
+na5_fire_grwth_rate = 0.07705
+
+# estimate Fire exstinguishing system HFC consumption using a bank calculation
+
+na5_fire_cons_estimate = (((147996)/(1-0.03)) - 138461) * 10**(-3) ### (2015 bank / ems factor) - 2014 bank = 2014 consumption
+    # = 14.11219588 Mt CO2-eq
+a5_fire_cons_estimate = (((63945)/(1-0.03)) - 59806) * 10**(-3)
+    # = 31.544 # Mt CO2-eq
+
+# extrapolate hfc-fire consumption using exponential growth with TEAP 2009 updated supplement growth rates
+
+data_frames[('exp_growth','NA5','FIRE')]['demand'] = exponentialGrowth(na5_fire_cons_estimate,0.07705,2014,2050)
+data_frames[('exp_growth','A5','FIRE')]['demand'] = exponentialGrowth(a5_fire_cons_estimate,0.07757,2014,2050)
+
+data_frames[('interp','NA5','FIRE')]['demand'] = data_frames[('exp_growth','NA5','FIRE')]['demand']
+data_frames[('interp','A5','FIRE')]['demand'] = data_frames[('exp_growth','A5','FIRE')]['demand']
+# See Velders 2015si for Fire-bank emissions factors
+    #fire_ems_factor = 0.03 # all regions
+
+#### Both BAU scenarios use exponential growth because of lack of FIRE data 
+
+## Solvents?
+
+
+## Extrapolate 2015 Consumption for NA5 and A5 countries as a total of the 6 R/AC sectors 
+
+na5_2014_cons_estimate = 695.47 - (
+    data_frames[('exp_growth','NA5','FOAMS')].loc[2014,'demand'] + data_frames[('exp_growth',
+        'NA5','FIRE')].loc[2014,'demand'])
+a5_2014_cons_estimate = 537.83 - (
+    data_frames[('exp_growth','A5','FOAMS')].loc[2014,'demand'] + data_frames[('exp_growth',
+        'A5','FIRE')].loc[2014,'demand'])
+
+na5_2015_cons_estimate = linearExtrapolation(2013,2014,2015,694.67,695.46)
+a5_2015_cons_estimate = linearExtrapolation(2013,2014,2015,466.01,537.83)
+
+
 
 
 ################### MAC ######################
@@ -336,73 +440,6 @@ data_frames[('exp_growth','NA5','TRANS')].loc[2014:2020,'demand'] = exponentialG
 data_frames[('exp_growth','A5','TRANS')].loc[2014:2020,'demand'] = exponentialGrowth(data_frames[('exp_growth','A5','TRANS')].loc[2014,'demand'],0.018,2014,2020)
 data_frames[('exp_growth','NA5','TRANS')].loc[2020:2050,'demand'] = exponentialGrowth(data_frames[('exp_growth','NA5','TRANS')].loc[2020,'demand'],0.03,2020,2050)
 data_frames[('exp_growth','A5','TRANS')].loc[2020:2050,'demand'] = exponentialGrowth(data_frames[('exp_growth','A5','TRANS')].loc[2020,'demand'],0.045,2020,2050)
-
-
-
-########### Foams sector
-
-# estimate foams refrigeration consumption as a percentage of total consumption 
-#data_frames[('exp_growth','NA5','FOAMS')].loc[2014,'demand'] = 
-
-
-
-### add foams, fire, and aerosls sectors
-
-####### Aerosols 
-
-# estimate Aerosol consumption 
-
-# extrapolate aerosol consumption using exponential growth with TEAP 2009 updated supplement growth rates
-
-# Estimate Aerosol bank 
-
-# See Velders 2015si for emissions factors
-
-####### Foams 
-
-# estimate Foams consumption 
-
-#glob_FOAM_flows.loc[2015,'demand'] = 0
-
-# extrapolate foam consumption using exponential growth with TEAP 2009 updated supplement growth rates
-    # NOTE: For foams, TEAP 2009 provides same growth rate for both NA5 and A5 countries 
-        # growth rate of 2%
-
-#glob_FOAM_flows['demand'] = exponentialGrowth(glob_FOAM_flows.loc[2015,'demand'],0.02,2015,2050)
-
-# Estimate foam bank 
-
-#glob_FOAM_flows.loc[2015,'bank'] = 604.811 # [Mt CO2-eq]
-
-# Velders 2015si breaks up foams emissions factors into open cell foams, extruded polystyrene foams (XPS), and Polyurethane foams (PUR)
-
-#foams_emissions_fac = 0.026 # global estimate; the average of 6 ratios of TEAP modeled emissions to banks, averaged over the years 2015-2020 (one ratio for each year)
-
-
-####### Fire Exstinguishing Systems
-
-# estimate Fire exstinguishing system HFC consumption 
-
-
-
-
-# extrapolate hfc-fire consumption using exponential growth with TEAP 2009 updated supplement growth rates
-
-
-
-# Estimate HFC-fire bank 
-
-#na5_FIRE_flows.loc[2015,'bank'] =  147.996 # [Mt CO2-eq]
-#a5_FIRE_flows.loc[2015,'bank'] = 63.945 # [Mt CO2-eq]
-
-
-# See Velders 2015si for emissions factors
-
-#fire_ems_factor = 0.03 # all regions
-
-# material flows
-
-## Solvents?
 
 
 
@@ -517,7 +554,7 @@ a5_NA_policy = np.interp(year,a5_NA_policy_years,a5_NA_policy_targets)
 # A5 Baseline: average of 2028-2030, freeze (100% baseline) in 2031,
 #phase-down (flexible approach) to reach plateau of 15% of baseline in 2035 (NA5) and 2050 (A5)
 
-india_na5_baseline = (na5_2015_cons_estimate + na5_2014_cons_estimate + 694.67)/3
+india_na5_baseline = (na5_2015_cons_estimate + na5_historical_consumption[22] + 694.67)/3
 # india_a5_baseline is based on modeled consumption and is therefore subject to change and error
 
 india_a5_baseline = 1358.5969 # use average of 'interp' and 'exp_growth' scenario baselines 
@@ -580,46 +617,66 @@ for scenario in range(0,len(scenario_List)):
     # precautionary if statement; these loops are only for the policy scenarios 
     if 'policy' in scenario_List[scenario] :
         for region in range(0,len(region_List)):
+            # Define the "last year", which is the last year after which the demand estimates stay constant until 2050
+            if scenario_List[scenario] == 'policy_NA' :
+                if region_List[region] == 'NA5' : # extrapolate until 2036, constant afterwards 
+                    last_year = 2036
+                elif region_List[region] == 'A5' : # extrapolate until 2046, constant afterwards 
+                    last_year = 2046 
+            if scenario_List[scenario] == 'policy_EU' :
+                    last_year = 2034
+            if scenario_List[scenario] == 'policy_India' :
+                if region_List[region] == 'NA5' : # extrapolate until 2035, constant afterward 
+                    last_year = 2035
+                elif region_List[region] == 'A5' : # extrapolate until 2050, constant afterward 
+                    last_year = 2050
+
             # set up the correct region's total demand estimates; percentages are applied to these estimates to estimate demand within each sector 
             policy_demand = policies_dict.get( (region_List[region], scenario_List[scenario] ) )
-            for sector in range(0,len(sector_List)):
-            # Fill a temporary list of policy estimates in the year 2015,2020,2025,and 2030 in each sector
-                policy_estimates = []
-                for t in range (2015,2035,5): # all policies 
-                    # Apply percentages of each sector to the demand estimates to fill the list of sectorized estimates
-                    policy_estimates.append( policy_demand[t-2014] * sector_prcnts.get(
-                        (sector_List[sector], region_List[region], t ) ) )
-                # Interpolate within each sector to fill demand from 2015 to 2030 (same for all policies)
-                data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2015:2030,'demand'] = np.interp(
-                    list(range(2015,2031)),projected_years, policy_estimates)
 
-                # apply percentages to 2014 demand estimate to fill in 2014 demand 
-                if region_List[region] == 'NA5' :
-                    demand_est = na5_2014_cons_estimate 
-                elif region_List[region] == 'A5' :
-                    demand_est = a5_2014_cons_estimate
-                # small assumption: assume 2014 percentage breakdowns are the same as 2015 (small change between years)
-                data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2014,'demand'] = demand_est * (
-                    sector_prcnts[sector_List[sector],region_List[region],2015])
-                # define the "last year", which is the last year after which the demand estimates stay constant until 2050
-                if scenario_List[scenario] == 'policy_NA' :
-                    if region_List[region] == 'NA5' : # extrapolate until 2036, constant afterwards 
-                        last_year = 2036
-                    elif region_List[region] == 'A5' : # extrapolate until 2046, constant afterwards 
-                        last_year = 2046 
-                if scenario_List[scenario] == 'policy_EU' :
-                    last_year = 2034
-                if scenario_List[scenario] == 'policy_India' :
-                    if region_List[region] == 'NA5' : # extrapolate until 2035, constant afterward 
-                        last_year = 2035
-                    elif region_List[region] == 'A5' : # extrapolate until 2050, constant afterward 
-                        last_year = 2050
-                # Extrapolatae the remaining demand to the last year specified by each policy for each region 
-                for t in range(2031,last_year + 1):
-                    data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[t,'demand'] = linearExtrapolation(
-                        t-2,t-1,t,data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[t-2,'demand'], data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[t-1,'demand'])
-                    # fill in the remaining demand with the last value, as a constant
-                    data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[last_year:2050,'demand'] = data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[last_year,'demand']
+            # Generate demand percentages for foams and fire (non R/AC sectors), only need through 2030
+            foams_pcnt = [(n/m) for n,m in zip(data_frames[('exp_growth',region_List[region],'FOAMS')].loc[2014:last_year,'demand'],summed_sectors_data_frames[('exp_growth',region_List[region])].loc[2014:last_year,'demand'])]
+            fires_pcnt = [(n/m) for n,m in zip(data_frames[('exp_growth',region_List[region],'FIRE')].loc[2014:last_year,'demand'],summed_sectors_data_frames[('exp_growth',region_List[region])].loc[2014:last_year,'demand'])]
+
+            policy_demand_RAC = [n - (n*m) - (n*q) for n,m,q in zip(policy_demand,foams_pcnt,fires_pcnt)]
+
+            for sector in range(0,len(sector_List)):
+                policy_estimates = []
+                if (sector_List[sector] != 'FOAMS') and (sector_List[sector] != 'FIRE') :
+                # Fill a temporary list of policy estimates in the year 2015,2020,2025,and 2030 in each sector
+                    for t in range (2015,2035,5): # all policies 
+                        # Apply percentages of each sector to the demand estimates to fill the list of sectorized estimates
+                        policy_estimates.append( policy_demand_RAC[t-2014] * sector_prcnts.get(
+                            (sector_List[sector], region_List[region], t ) ) )
+                    # Interpolate within each sector to fill demand from 2015 to 2030 (same for all policies)
+                    data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2015:2030,'demand'] = np.interp(
+                        list(range(2015,2031)),projected_years, policy_estimates)
+
+                    # apply percentages to 2014 demand estimate to fill in 2014 demand 
+                    if region_List[region] == 'NA5' :
+                        demand_est = na5_2014_cons_estimate # these estimates factor out foams and fire so the percentages make sense 
+                    elif region_List[region] == 'A5' :
+                        demand_est = a5_2014_cons_estimate # these estimates factor out foams and fire so the percentages make sense
+                    # small assumption: assume 2014 percentage breakdowns are the same as 2015 (small change between years)
+                    data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2014,'demand'] = demand_est * (
+                        sector_prcnts[sector_List[sector],region_List[region],2015])
+                
+                if (sector_List[sector] != 'FOAMS') and (sector_List[sector] != 'FIRE') :
+                    # Extrapolate the remaining demand percentage to the last year specified by each policy for each region 
+                    percents_array = sector_percnts_arrs.get((sector_List[sector],region_List[region]))
+                    percents_array = list(percents_array)
+                    for t in range(2031,last_year + 1):
+                        percents_array.append(linearExtrapolation(t-2,t-1,t,percents_array[t-2016],percents_array[t-2015]))
+                    # Apply last year's percentage to the last year total demand estimate, and then interpolate between 2030 and last year 
+                    data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2030:last_year,'demand'] = list(np.interp(
+                        list(range(2030,last_year+1)),[2030, last_year],[ data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2030,'demand'], percents_array[len(
+                            percents_array) - 1] * policy_demand[last_year-2014]]))
+                elif sector_List[sector] == 'FOAMS' :
+                    data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2014:last_year,'demand'] = [a*b for a,b in zip(policy_demand,foams_pcnt)] # 2014:2030
+                elif sector_List[sector] == 'FIRE' :
+                    data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[2014:last_year,'demand'] = [a*b for a,b in zip(policy_demand,fires_pcnt)] # 2014:2030
+                # fill in the remaining demand with the last value, as a constant
+                data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[last_year:2050,'demand'] = data_frames[scenario_List[scenario],region_List[region],sector_List[sector]].loc[last_year,'demand']
                 
 
 
@@ -643,19 +700,17 @@ for scenario in range(0,len(scenario_List)):
 #### Sum everything at the end to generate regional and global estimates of flows 
 
 for scenario in range(0,len(scenario_List)):
-
     for var in range(0,len(vars_list)):
         # set each variable equal to 0 so the += works (doesn't work with NAN values)
         global_data_frames[(scenario_List[scenario])][vars_list[var]] = 0
 
     for region in range(0,len(region_List)):
-
         for var in range(0,len(vars_list)):
             # set each category (variable) equal to 0 in the empty data frames 
             summed_sectors_data_frames[(scenario_List[scenario],region_List[region])][vars_list[var]] = 0
 
         for sector in range(0,len(sector_List)):
-            # Determine appropriate emissions factor 
+            # Determine appropriate emissions factor           
             ems_fac = ems_factors_dict.get((sector_List[sector], region_List[region]))
 
             # Calculate 2014 Bank estimate using algebraic manipulation
@@ -664,30 +719,20 @@ for scenario in range(0,len(scenario_List)):
                     1 - ems_fac)) - data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[2014,'demand'])
 
             for t in range(2014,2051):
-
-                # Re-adjust Demand given servicing of the bank
-
-                ## using a 15% servicing percentage 
-                #data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand'] -= (
-                    #servicing_pcnt) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank'])
-
-                ## Using an array of servicing demand from 2014:2050
-                data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand'] -= servc_demand_arrs.get( 
-                    (sector_List[sector],region_List[region]) )[t-2014] 
-
+                if (sector_List[sector] == 'FOAMS') or (sector_List[sector] == 'FIRE') or ('policy' in scenario_List[scenario]):
                 # Calculate Recovery as a fixed percentage of the bank using a servicing percentage (15%)
-                #data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery'] = (
-                    # servicing_pcnt) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank']) 
-
-                # Calculate Recovery as equal to servicing demand in a given year 
-                data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery'] = servc_demand_arrs.get(
-                    (sector_List[sector],region_List[region]) )[t-2014] 
+                    data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery'] = (
+                        servicing_pcnt) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank']) 
+                else:
+                    # Calculate Recovery as equal to servicing demand in a given year 
+                    data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery'] = servc_demand_arrs.get(
+                        (sector_List[sector],region_List[region]))[t-2014] 
 
                 # Calculate a recycling rate (as a fraction of emissions) that corresponds to an amount of recycling that is 20% of servicing 
                     ## Upper bound of recycling scenario = 20% 
                 rec_fac = ((0.20)*(data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'recovery']))/((
                     data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank'] + data_frames[(
-                        scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand']) * (ems_fac))
+                    scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand']) * (ems_fac))
 
                 # Calculate Emissions 
                 data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'emissions'] = (ems_fac) * (
@@ -704,6 +749,16 @@ for scenario in range(0,len(scenario_List)):
                     data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t + 1,'bank'] = (
                         1 - ems_fac) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank'] 
                         + data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand'])
+
+                # Re-adjust Demand given servicing of the bank to calculate demand for new manufacturing
+                #if (sector_List[sector] == 'FOAMS') or (sector_List[sector] == 'FIRE') or ('policy' in scenario_List[scenario]) :
+                    ## using a 15% servicing percentage 
+                    #data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand'] -= (
+                    #    servicing_pcnt) * (data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'bank'])
+                #else: 
+                    ## Using an array of servicing demand from 2014:2050
+                    #data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])].loc[t,'demand'] -= servc_demand_arrs.get( 
+                       #(sector_List[sector],region_List[region]) )[t-2014] 
 
             # Calculate Destruction
             data_frames[(scenario_List[scenario],region_List[region],sector_List[sector])]['destruction'] = (
