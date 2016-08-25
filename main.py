@@ -35,16 +35,16 @@ for scenario in range(0,len(scenario_List)):
         for sector in range(0,len(sector_List)):
             data_frames.update( { (scenario_List[scenario],region_List[region],sector_List[sector]) : 
             pd.DataFrame(
-            columns = ('demand', 'bank', 'emissions', 'recycling', 'production','recovery','destruction'), 
+            columns = vars_list, 
             index = range(2014, 2051)
             ) } )
             summed_sectors_data_frames.update( { (scenario_List[scenario] , region_List[region]) : 
             pd.DataFrame(
-            columns = ('demand', 'bank', 'emissions', 'recycling', 'production','recovery','destruction'), 
+            columns = vars_list, 
             index = range(2014, 2051) ) } )
             global_data_frames.update( { (scenario_List[scenario]) : 
             pd.DataFrame(
-            columns = ('demand', 'bank', 'emissions', 'recycling', 'production','recovery','destruction'), 
+            columns = vars_list, 
             index = range(2014, 2051) ) } )
 
             
@@ -140,10 +140,6 @@ estimate_years_TEAP = [2014,2015,2020,2025,2030,2035,2040,2045,2050] # Years for
 
 
 # FIRE: Fire Protection Sector
-
-# FOAM: Foams Sector
-## Foam estimates by TEAP 2009, supplement report only report HFC banks and foams globally (no data for A5 and NA5 countries)
-
 
 # Models
 
@@ -796,8 +792,8 @@ for scenario in range(0,len(scenario_List)):
 
 #policy_flows['production'] = policy_flows['demand'] - policy_flows['recycling']
 
-emissions = sum(policy_flows['emissions'])
-recycling = sum(policy_flows['recycling'])
+#emissions = sum(policy_flows['emissions'])
+#recycling = sum(policy_flows['recycling'])
 
 # Plot results:
 matplotlib.style.use('ggplot')
@@ -806,34 +802,82 @@ matplotlib.rcParams.update({'legend.fontsize': 18})
 matplotlib.rcParams.update({'figure.autolayout': True})
 matplotlib.rcParams.update({'mathtext.default': 'regular'}) 
 
-plot1 = pd.DataFrame(
-    columns = ('Production','Recycling'), 
-    index = range(2014, 2051)
-    )
-plot1['Production'] = policy_flows['production']
-plot1['Recycling'] = policy_flows['recycling']
-
-p1 = plot1.plot(kind = 'area')
-plt.xlabel('Year')
-plt.ylabel('Mt CO$_2$-eq')
-plt.savefig('demand.pdf')
-
-plot2 = pd.DataFrame(
-    columns = ('Bank','Cumulative Emissions'), 
-    index = range(2014, 2051)
-    )
-plot2['Bank'] = policy_flows['bank']
-plot2['Cumulative Emissions'] = np.cumsum(policy_flows['emissions'])
-
-p2 = plot2.plot()
-plt.xlabel('Year')
-plt.ylabel('Mt CO$_2$-eq')
-plt.gca().set_ylim([0, 3e4])
-plt.ticklabel_format(style = 'sci', axis = 'y', scilimits = (0, 0))
 
 
+### Plotting each variable in each scenario. Each Plot contains one variable for all scenarios for one region
+for var in range(0,len(vars_list)):
+    for region in range(0,len(region_List)):
+        plot = pd.DataFrame(
+            columns = scenario_List, 
+            index = range(2014, 2051)
+            )
+        for scenario in range(0,len(scenario_List)):
+            # fill the plot's data frame with the vectors we want to be plotted 
+            plot[scenario_List[scenario]] = summed_sectors_data_frames[(scenario_List[scenario]),region_List[region]][vars_list[var]]
+        file_name = 'total_' + vars_list[var] + '_' + region_List[region] + '.pdf'
+        title = 'Total HFC ' + vars_list[var].title() + ' for ' + region_List[region] + ' Countries'
+        p1 = plot.plot()
+        plt.title(title)
+        plt.xlabel('Year')
+        plt.ylabel('Mt CO$_2$-eq')
+        plt.savefig(file_name)
 
-plt.savefig('banks.pdf')
+plt.close('all')
+#p1 = plot.plot() #kind = 'area')
+
+### General script for plotting one or more variable on the same axes, generating a plot for each scenario and for each region 
+### Plot Emissions and Recycling on the same axes; generate one plot for each scenario, for each region, and then global 
+
+vars_to_plot = []
+
+for var in range(0,len(vars_list)):
+    if (vars_list[var] == 'recycling') or (vars_list[var] == 'emissions') :
+        vars_to_plot.append(vars_list[var])
+
+for scenario in range(0,len(scenario_List)):
+    for region in range(0,len(region_List)):
+        plot = pd.DataFrame( 
+            columns = vars_to_plot, 
+            index = range(2014, 2051)
+            )
+        file_name = ''
+        title = 'HFC '
+        for var in range(0,len(vars_to_plot)):
+            # fill plot's data frame with vectors we want to plot
+            plot[vars_to_plot[var]] = summed_sectors_data_frames[(scenario_List[scenario],region_List[region])][vars_to_plot[var]]
+            file_name = file_name + vars_to_plot[var] + '_' 
+            if var == len(vars_to_plot) - 1 : 
+                title = title + vars_to_plot[var].title() + ' (' + region_List[region] + ') : ' + scenario_List[scenario].title()
+            else: 
+                title = title + vars_to_plot[var].title() + ' and '
+        file_name = file_name + region_List[region] + '_' + scenario_List[scenario] + '.pdf'
+        p1 = plot.plot()
+        plt.title(title)
+        plt.xlabel('Year')
+        plt.ylabel('Mt CO$_2$-eq')
+        plt.savefig(file_name)
+
+
+
+
+
+
+#plot2 = pd.DataFrame(
+#    columns = ('Bank','Cumulative Emissions'), 
+#    index = range(2014, 2051)
+#    )
+#plot2['Bank'] = policy_flows['bank']
+#plot2['Cumulative Emissions'] = np.cumsum(policy_flows['emissions'])
+
+#p2 = plot2.plot()
+#plt.xlabel('Year')
+#plt.ylabel('Mt CO$_2$-eq')
+#plt.gca().set_ylim([0, 3e4])
+#plt.ticklabel_format(style = 'sci', axis = 'y', scilimits = (0, 0))
+
+
+
+#plt.savefig('banks.pdf')
 #bank_2014 = 0 #5000 #this is just approximated
 #recycling_rate = 0.35
 #delay = 10 #years
