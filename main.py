@@ -11,6 +11,7 @@ import matplotlib
 matplotlib.use('Agg') #fixes framework problem with GUI
 import matplotlib.pyplot as plt
 
+
 # Create Data frames within a dictionary 
 
 
@@ -661,7 +662,7 @@ for y in list(range(2020,2023)):
 
 HCFC_avg_A5_Kigali = np.mean(a5_HCFC_consumption)
 
-kigali_a5_baseline = HFC_avg_A5_Kigali + HCFC_avg_A5_Kigali
+kigali_a5_baseline = HFC_avg_A5_Kigali + (0.65)*HCFC_avg_A5_Kigali
 
 
 a5_kigali_policy_years = [2014, 2024, 2029, 2035, 2040, 2045, 2050]
